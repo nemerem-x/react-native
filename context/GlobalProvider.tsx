@@ -44,7 +44,7 @@ const GlobalProvider = ({ children }: any) => {
         setIsLoading(false);
       }
     }
-    run;
+    run();
   }, []);
 
   return (
