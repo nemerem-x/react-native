@@ -6,7 +6,7 @@ import {
   View,
   ListRenderItem,
   RefreshControl,
-  Alert
+  Alert,
 } from "react-native";
 
 import { HelloWave } from "@/components/HelloWave";
@@ -20,76 +20,50 @@ import SearchInput from "@/components/SearchInput";
 import { useState, useEffect } from "react";
 import Trending from "@/components/Trending";
 import EmptyState from "@/components/EmptyState";
-import { getAllPosts } from "@/lib/appwrite";
+import { getAllPosts, getLatestPosts } from "@/lib/appwrite";
+import useAppwrite from "@/lib/useAppwrite";
+import VideoCard from "@/components/VideoCard";
+import { useGlobalContext } from "@/context/GlobalProvider";
 
 interface DataType {
-  id: string;
+  $id: string;
   title: string;
+  thumbnail: string;
+  video: string;
+  creator: { username: string; avatar: string };
 }
 
 export default function HomeScreen() {
+  const { data: posts, refetch } = useAppwrite(getAllPosts);
+  const { data: LatestPosts } = useAppwrite(getLatestPosts);
+  const { user, setUser, setIsLoggedIn } = useGlobalContext();
+
 
   const [refreshing, setRefreshing] = useState(false);
-  const [data, setData] = useState<{}[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const res = await getAllPosts();
-        setData(res);
-      } catch (error: any) {
-        Alert.alert("Error", error.message)
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchData();
-  }, [])
-  
 
   const onRefresh = async () => {
     setRefreshing(true);
+    await refetch();
     setRefreshing(false);
-  }
-
-  const DATA = [
-    {
-      id: "bd7acbea-c1b1-46c2-aed5-3ad53abb28ba",
-      title: "First Item",
-    },
-    {
-      id: "3ac68afc-c605-48d3-a4f8-fbd91aa97f63",
-      title: "Second Item",
-    },
-    {
-      id: "58694a0f-3da1-471f-bd96-145571e29d72",
-      title: "Third Item",
-    },
-  ];
+  };
 
   const [input, setInput] = useState("");
 
   return (
     <SafeAreaView className="bg-primary h-full">
-      <FlatList<DataType>
-        data={DATA}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View>
-            <Text className="text-white">{item.title}</Text>
-          </View>
-        )}
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.$id}
+        renderItem={({ item }) => <VideoCard video={item} />}
         ListHeaderComponent={() => (
           <View className="my-6 px-4 space-y-6">
             <View className="justify-between items-start flex-row mb-6">
               <View>
                 <Text className="font-medium text-sm text-gray-100">
-                  Welcome Back
+                  Welcome Back,
                 </Text>
                 <Text className="text-2xl font-bold text-gray-100">
-                  Nemerem
+                  {user?.username}
                 </Text>
               </View>
               <View className="mt-1.5">
@@ -112,7 +86,7 @@ export default function HomeScreen() {
               <Text className="text-gray-100 text-lg mb-3 font-regular">
                 Latest Videos
               </Text>
-              <Trending posts={DATA}/>
+              <Trending posts={LatestPosts} />
             </View>
           </View>
         )}
@@ -122,7 +96,9 @@ export default function HomeScreen() {
             subtitle="Be the first one to upload a video"
           />
         )}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </SafeAreaView>
   );
